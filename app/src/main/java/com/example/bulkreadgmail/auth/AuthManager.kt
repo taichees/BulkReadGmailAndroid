@@ -12,7 +12,10 @@ class AuthManager(context: Context) {
         .requestServerAuthCode(webClientId, true) // forceCodeForRefreshToken = true を追加
         .requestEmail()
         // Gmailの既読化（ラベル操作）に必要なスコープを追加
-        .requestScopes(Scope("https://www.googleapis.com/auth/gmail.modify"))
+        .requestScopes(
+            Scope("https://www.googleapis.com/auth/gmail.readonly"),
+            Scope("https://www.googleapis.com/auth/gmail.modify")
+        )
         .build()
 
     private val googleSignInClient = GoogleSignIn.getClient(context, gso)
