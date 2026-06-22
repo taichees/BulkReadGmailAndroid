@@ -54,9 +54,14 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
                         client_id = clientId
                     )
                 )
-                if (response.success && response.user_id != null) {
+                if (response.success && response.user_id != null && response.access_token != null) {
                     Log.d("MainViewModel", "Backend auth success: ${response.user_id}")
-                    sessionManager.saveUserId(response.user_id)
+                    sessionManager.saveSession(
+                        userId = response.user_id,
+                        accessToken = response.access_token,
+                        refreshToken = response.refresh_token,
+                        expiresIn = response.expires_in ?: 3600
+                    )
                     _uiState.value = UiState.LoggedIn(response.user_id)
                 } else {
                     Log.e("MainViewModel", "Backend auth failed: ${response.error}")
@@ -69,17 +74,53 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
+    private suspend fun getValidAccessToken(): String? {
+        val expiryDate = sessionManager.getExpiryDate()
+        val accessToken = sessionManager.getAccessToken()
+        
+        // 5 minutes buffer (300,000 ms)
+        if (accessToken != null && expiryDate > System.currentTimeMillis() + 5 * 60 * 1000) {
+            return accessToken
+        }
+        
+        val refreshToken = sessionManager.getRefreshToken() ?: return null
+        val clientId = "725405052696-binf7nh361nd97rt21ilpsd3v7b7q5jd.apps.googleusercontent.com"
+        
+        return try {
+            Log.d("MainViewModel", "Refreshing token with Google...")
+            val response = apiService.refreshToken(
+                clientId = clientId,
+                refreshToken = refreshToken
+            )
+            Log.d("MainViewModel", "Token refresh success. New expires in: ${response.expiresIn}")
+            sessionManager.updateAccessToken(response.accessToken, response.expiresIn)
+            response.accessToken
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "Failed to refresh token", e)
+            null
+        }
+    }
+
     fun readAllEmails() {
         val userId = sessionManager.getUserId() ?: return
         viewModelScope.launch {
             Log.d("MainViewModel", "Executing readAllEmails for user: $userId")
+            _uiState.value = UiState.Loading("アクセストークン確認中...")
+            
+            val accessToken = getValidAccessToken()
+            if (accessToken == null) {
+                Log.e("MainViewModel", "Failed to retrieve a valid access token")
+                _toastEvent.emit("セッションが期限切れです。再ログインしてください。")
+                sessionManager.clearSession()
+                _uiState.value = UiState.Initial
+                return@launch
+            }
+
             _uiState.value = UiState.Loading("メール取得中...")
             try {
-                val clientId = "725405052696-binf7nh361nd97rt21ilpsd3v7b7q5jd.apps.googleusercontent.com"
                 val responseBody = apiService.readAll(
-                    ReadAllRequest(
-                        user_id = userId,
-                        client_id = clientId,
+                    authHeader = "Bearer $accessToken",
+                    request = ReadAllRequest(
                         stream = true
                     )
                 )

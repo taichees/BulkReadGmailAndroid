@@ -1,6 +1,7 @@
 package com.example.bulkreadgmail.data.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class AuthCallbackRequest(
@@ -14,15 +15,24 @@ data class AuthCallbackRequest(
 data class AuthCallbackResponse(
     val success: Boolean = false,
     val user_id: String? = null,
+    val access_token: String? = null,
+    val refresh_token: String? = null,
+    val expires_in: Long? = null,
     val error: String? = null
 )
 
 @Serializable
 data class ReadAllRequest(
-    val user_id: String,
-    val client_id: String,
     val stream: Boolean = false,
     val limit: Int? = null
+)
+
+@Serializable
+data class GoogleTokenResponse(
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("expires_in") val expiresIn: Long,
+    @SerialName("scope") val scope: String? = null,
+    @SerialName("token_type") val tokenType: String? = null
 )
 
 @Serializable

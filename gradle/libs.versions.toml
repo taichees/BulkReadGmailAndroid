@@ -15,9 +15,11 @@ kotlinxSerialization = "1.7.3"
 okhttp = "4.12.0"
 navigationCompose = "2.8.5"
 lifecycleViewmodelCompose = "2.8.7"
+securityCrypto = "1.1.0-alpha06"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 google-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
 supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
